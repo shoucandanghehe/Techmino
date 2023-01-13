@@ -686,12 +686,13 @@ jobs:
         run: |
           version_string = "${{ needs.get-info.outputs.version-string }}"
           file_version = (f"{version_string.replace('.', ',')},0")
-          with open("./.github/build/windows/${{ env.BUILD_TYPE }}/template.rc", "r", encoding="utf8") as file:
+          with open("./.github/build/windows/${{ env.BUILD_TYPE }}/template.rc", "r+", encoding="utf8") as file:
             data = file.read()
             data = data\
               .replace("@Version", version_string)\
               .replace("@FileVersion", file_version)
-          with open("./love-actions-windows/game.rc", "w+", encoding="utf8") as file:
+            file.seek(0)
+            file.truncate()
             file.write(data)
       - name: Build Windows packages
         id: build-packages
