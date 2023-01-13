@@ -681,9 +681,21 @@ jobs:
         with:
           platform: Windows
           dir: ./ColdClear
+      - name: Update Windows template
+        shell: python3 {0}
+        run: |
+          version_string = "${{ needs.get-info.outputs.version-string }}"
+          file_version = (f"{version_string.replace('.', ',')},0")
+          with open("./.github/build/windows/${{ env.BUILD_TYPE }}/template.rc", "r", encoding="utf8") as file:
+            data = file.read()
+            data = data\
+              .replace("@Version", version_string)\
+              .replace("@FileVersion", file_version)
+          with open("./love-actions-windows/game.rc", "w+", encoding="utf8") as file:
+            file.write(data)
       - name: Build Windows packages
         id: build-packages
-        uses: love-actions/love-actions-windows@v1
+        uses: love-actions/love-actions-windows@add-build-installer
         with:
           icon-path: ./.github/build/windows/${{ env.BUILD_TYPE }}/icon.ico
           rc-path: ./.github/build/windows/${{ env.BUILD_TYPE }}/template.rc
@@ -691,7 +703,9 @@ jobs:
           extra-assets-x86: ./ColdClear/x86/CCloader.dll ./ColdClear/x86/cold_clear.dll
           extra-assets-x64: ./ColdClear/x64/CCloader.dll ./ColdClear/x64/cold_clear.dll
           product-name: ${{ steps.process-app-name.outputs.product-name }}
-          version-string: ${{ needs.get-info.outputs.version-string }}
+          app-id: ${{ secrets.APP-ID }}
+          project-website: https://www.studio26f.org/
+          installer-languages: ChineseSimplified.isl English.isl Japanese.isl French.isl
           output-folder: ${{ env.OUTPUT_FOLDER }}
       - name: Upload 32-bit artifact
         uses: actions/upload-artifact@v3
@@ -703,6 +717,11 @@ jobs:
         with:
           name: ${{ needs.get-info.outputs.base-name }}_Windows_x64
           path: ${{ env.OUTPUT_FOLDER }}/${{ steps.process-app-name.outputs.product-name }}_x64.zip
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ needs.get-info.outputs.base-name }}_Windows_installer
+          path: ${{ env.OUTPUT_FOLDER }}/${{ steps.process-app-name.outputs.product-name }}_installer.exe
       - name: Prepare for release
         if: ${{ startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
